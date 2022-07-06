@@ -91,6 +91,24 @@ if ! sqlite3 $my_dir/birds.db 'SELECT COUNT(Manual_ID) FROM detections' &>/dev/n
      ADD COLUMN Manual_ID text NOT NULL DEFAULT "UNVERIFIED"'
 fi
 
+pytest_installation_status=$(~/BirdNET-Pi/birdnet/bin/python3 -c 'import pkgutil; print("installed" if pkgutil.find_loader("pytest") else "not installed")')
+if [[ "$pytest_installation_status" = "not installed" ]];then
+  $HOME/BirdNET-Pi/birdnet/bin/pip3 install -U pip
+  $HOME/BirdNET-Pi/birdnet/bin/pip3 install pytest==7.1.2 pytest-mock==3.7.0
+fi
+
+[ -L ~/BirdSongs/Extracted/weekly_report.php ] || ln -sf ~/BirdNET-Pi/scripts/weekly_report.php ~/BirdSongs/Extracted
+
+if ! grep weekly_report /etc/crontab &>/dev/null;then
+  sed "s/\$USER/$USER/g" $HOME/BirdNET-Pi/templates/weekly_report.cron | sudo tee -a /etc/crontab
+fi
+if ! grep APPRISE_WEEKLY_REPORT /etc/birdnet/birdnet.conf &>/dev/null;then
+  sudo -u$USER echo "APPRISE_WEEKLY_REPORT=1" >> /etc/birdnet/birdnet.conf
+fi
+
+if ! grep SILENCE_UPDATE_INDICATOR /etc/birdnet/birdnet.conf &>/dev/null;then
+  sudo -u$USER echo "SILENCE_UPDATE_INDICATOR=0" >> /etc/birdnet/birdnet.conf
+
 astral_installation_status=$(~/BirdNET-Pi/birdnet/bin/python3 -c 'import pkgutil; print("installed" if pkgutil.find_loader("astral") else "not installed")')
 if [[ "$astral_installation_status" = "not installed" ]];then
   sudo -u$USER $HOME/BirdNET-Pi/birdnet/bin/pip3 install -U pip
@@ -100,10 +118,14 @@ if ! sqlite3 $my_dir/birds.db 'SELECT COUNT(*) FROM daylight' &>/dev/null; then
   $HOME/BirdNET-Pi/birdnet/bin/python3 /usr/local/bin/sun.py
 fi
 
-source <(awk '/upload_max/ && !/^;/ {print $1$2$3}' /etc/php/*/fpm/php.ini)
-if [ "$upload_max_filesize" != "50M" ];then
-  sudo sed -i 's/upload_max_filesize =.*/upload_max_filesize = 50M/' /etc/php/*/fpm/php.ini
+if ! grep '\-\-browser.gatherUsageStats false' $HOME/BirdNET-Pi/templates/birdnet_stats.service &>/dev/null ;then
+  sudo -E sed -i "s|ExecStart=.*|ExecStart=$HOME/BirdNET-Pi/birdnet/bin/streamlit run $HOME/BirdNET-Pi/scripts/plotly_streamlit.py --browser.gatherUsageStats false --server.address localhost --server.baseUrlPath \"/stats\"|" $HOME/BirdNET-Pi/templates/birdnet_stats.service
+  sudo systemctl daemon-reload && restart_services.sh
 fi
+
+# Make IceCast2 a little more secure
+sudo sed -i 's|<!-- <bind-address>.*|<bind-address>127.0.0.1</bind-address>|;s|<!-- <shoutcast-mount>.*|<shoutcast-mount>/stream</shoutcast-mount>|' /etc/icecast2/icecast.xml
+sudo systemctl restart icecast2
 
 sudo systemctl daemon-reload
 restart_services.sh
