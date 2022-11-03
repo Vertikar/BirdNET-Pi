@@ -6,9 +6,7 @@ $home = shell_exec("awk -F: '/1000/{print $6}' /etc/passwd");
 $home = trim($home);
 if(!isset($_SESSION['behind'])) {
   $fetch = shell_exec("sudo -u".$user." git -C ".$home."/BirdNET-Pi fetch 2>&1");
-  if(strlen($fetch) > 0) {
-    $_SESSION['behind'] = trim(shell_exec("sudo -u".$user." git -C ".$home."/BirdNET-Pi status | sed -n '2 p' | cut -d ' ' -f 7"));
-  }
+  $_SESSION['behind'] = trim(shell_exec("sudo -u".$user." git -C ".$home."/BirdNET-Pi status | sed -n '2 p' | cut -d ' ' -f 7"));
   if(isset($_SESSION['behind'])&&intval($_SESSION['behind']) >= 99) {?>
   <style>
   .updatenumber { 
@@ -16,8 +14,14 @@ if(!isset($_SESSION['behind'])) {
   }
   </style>
 <?php }}
+
+if (file_exists('./scripts/thisrun.txt')) {
+  $config = parse_ini_file('./scripts/thisrun.txt');
+} elseif (file_exists('./scripts/firstrun.ini')) {
+  $config = parse_ini_file('./scripts/firstrun.ini');
+}
 ?>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=8.05.22">
 <style>
 body::-webkit-scrollbar {
   display:none
@@ -49,13 +53,24 @@ body::-webkit-scrollbar {
 <form action="" method="GET" id="views">
   <button type="submit" name="view" value="View Log" form="views">View Log</button>
 </form>
-<form action="" method="GET" id="views">
-  <button type="submit" name="view" value="Tools" form="views">Tools<?php if(isset($_SESSION['behind']) && intval($_SESSION['behind']) >= 50){ $updatediv = ' <div class="updatenumber">'.$_SESSION["behind"].'</div>'; } else { $updatediv = ""; } echo $updatediv; ?></button>
+<form action="" id="toolsbtn" method="GET" id="views">
+  <button type="submit" name="view" value="Tools" form="views">Tools<?php if(isset($_SESSION['behind']) && intval($_SESSION['behind']) >= 50 && ($config['SILENCE_UPDATE_INDICATOR'] != 1)){ $updatediv = ' <div class="updatenumber">'.$_SESSION["behind"].'</div>'; } else { $updatediv = ""; } echo $updatediv; ?></button>
 </form>
 <button href="javascript:void(0);" class="icon" onclick="myFunction()"><img src="images/menu.png"></button>
 </div>
 
 <script>
+window.onload = function() {
+  var elements = document.querySelectorAll("button[name=view]");
+
+  var setViewsOpacity = function() {
+      document.getElementsByClassName("views")[0].style.opacity = "0.5";
+  };
+
+  for (var i = 0; i < elements.length; i++) {
+      elements[i].addEventListener('click', setViewsOpacity, false);
+  }
+};
 var topbuttons = document.querySelectorAll("button[form='views']");
 if(window.location.search.substr(1) != '') {
   for (var i = 0; i < topbuttons.length; i++) {
@@ -94,11 +109,6 @@ if(isset($_GET['view'])){
   if($_GET['view'] == "Streamlit"){echo "<iframe src=\"/stats\"></iframe>";}
   if($_GET['view'] == "Daily Charts"){include('history.php');}
   if($_GET['view'] == "Tools"){
-    if (file_exists('./scripts/thisrun.txt')) {
-      $config = parse_ini_file('./scripts/thisrun.txt');
-    } elseif (file_exists('./scripts/firstrun.ini')) {
-      $config = parse_ini_file('./scripts/firstrun.ini');
-    }
     $caddypwd = $config['CADDY_PWD'];
     if (!isset($_SERVER['PHP_AUTH_USER'])) {
       header('WWW-Authenticate: Basic realm="My Realm"');
@@ -117,7 +127,7 @@ if(isset($_GET['view'])){
           <button type=\"submit\" name=\"view\" value=\"System Controls\" form=\"views\">System Controls".$updatediv."</button>
           <button type=\"submit\" name=\"view\" value=\"Services\" form=\"views\">Services</button>
           <button type=\"submit\" name=\"view\" value=\"File\" form=\"views\">File Manager</button>
-          <a href=\"scripts/adminer.php\" target=\"_top\"><button type=\"submit\" form=\"\">Database Maintenance</button></a>
+          <a href=\"scripts/adminer.php\" target=\"_blank\"><button type=\"submit\" form=\"\">Database Maintenance</button></a>
           <button type=\"submit\" name=\"view\" value=\"Webterm\" form=\"views\">Web Terminal</button>
           <button type=\"submit\" name=\"view\" value=\"Included\" form=\"views\">Custom Species List</button>
           <button type=\"submit\" name=\"view\" value=\"Excluded\" form=\"views\">Excluded Species List</button>

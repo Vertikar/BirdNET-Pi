@@ -1,7 +1,6 @@
 <?php
 ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+error_reporting(E_ERROR);
 
 if (file_exists('./scripts/thisrun.txt')) {
   $config = parse_ini_file('./scripts/thisrun.txt');
@@ -101,6 +100,38 @@ if(isset($_GET['submit'])) {
     }
   }
 
+  if(isset($_GET["freqshift_hi"])) {
+    $freqshift_hi = $_GET["freqshift_hi"];
+    if(strcmp($freqshift_hi,$config['FREQSHIFT_HI']) !== 0) {
+      $contents = preg_replace("/FREQSHIFT_HI=.*/", "FREQSHIFT_HI=$freqshift_hi", $contents);
+      $contents2 = preg_replace("/FREQSHIFT_HI=.*/", "FREQSHIFT_HI=$freqshift_hi", $contents2);
+    }
+  }
+
+  if(isset($_GET["freqshift_lo"])) {
+    $freqshift_lo = $_GET["freqshift_lo"];
+    if(strcmp($freqshift_lo,$config['FREQSHIFT_LO']) !== 0) {
+      $contents = preg_replace("/FREQSHIFT_LO=.*/", "FREQSHIFT_LO=$freqshift_lo", $contents);
+      $contents2 = preg_replace("/FREQSHIFT_LO=.*/", "FREQSHIFT_LO=$freqshift_lo", $contents2);
+    }
+  }
+
+  if(isset($_GET["freqshift_pitch"])) {
+    $freqshift_pitch = $_GET["freqshift_pitch"];
+    if(strcmp($freqshift_pitch,$config['FREQSHIFT_PITCH']) !== 0) {
+      $contents = preg_replace("/FREQSHIFT_PITCH=.*/", "FREQSHIFT_PITCH=$freqshift_pitch", $contents);
+      $contents2 = preg_replace("/FREQSHIFT_PITCH=.*/", "FREQSHIFT_PITCH=$freqshift_pitch", $contents2);
+    }
+  }
+
+  if(isset($_GET["freqshift_tool"])) {
+    $freqshift_tool = $_GET["freqshift_tool"];
+    if(strcmp($freqshift_tool,$config['FREQSHIFT_TOOL']) !== 0) {
+      $contents = preg_replace("/FREQSHIFT_TOOL=.*/", "FREQSHIFT_TOOL=$freqshift_tool", $contents);
+      $contents2 = preg_replace("/FREQSHIFT_TOOL=.*/", "FREQSHIFT_TOOL=$freqshift_tool", $contents2);
+    }
+  }
+
   if(isset($_GET["full_disk"])) {
     $full_disk = $_GET["full_disk"];
     if(strcmp($full_disk,$config['FULL_DISK']) !== 0) {
@@ -157,6 +188,16 @@ if(isset($_GET['submit'])) {
       $contents2 = preg_replace("/AUDIOFMT=.*/", "AUDIOFMT=$audiofmt", $contents2);
     }
   }
+  if(isset($_GET["silence_update_indicator"])) {
+    $silence_update_indicator = 1;
+    if(strcmp($silence_update_indicator,$config['SILENCE_UPDATE_INDICATOR']) !== 0) {
+      $contents = preg_replace("/SILENCE_UPDATE_INDICATOR=.*/", "SILENCE_UPDATE_INDICATOR=$silence_update_indicator", $contents);
+      $contents2 = preg_replace("/SILENCE_UPDATE_INDICATOR=.*/", "SILENCE_UPDATE_INDICATOR=$silence_update_indicator", $contents2);
+    }
+  } else {
+    $contents = preg_replace("/SILENCE_UPDATE_INDICATOR=.*/", "SILENCE_UPDATE_INDICATOR=0", $contents);
+    $contents2 = preg_replace("/SILENCE_UPDATE_INDICATOR=.*/", "SILENCE_UPDATE_INDICATOR=0", $contents2);
+  }
 
   $fh = fopen('/etc/birdnet/birdnet.conf', "w");
   $fh2 = fopen("./scripts/thisrun.txt", "w");
@@ -164,7 +205,10 @@ if(isset($_GET['submit'])) {
   fwrite($fh2, $contents2);
 }
 
-$count_labels = count(file("./scripts/labels.txt"));
+$user = trim(shell_exec("awk -F: '/1000/{print $1}' /etc/passwd"));
+$home = trim(shell_exec("awk -F: '/1000/{print $6}' /etc/passwd"));
+
+$count_labels = count(file($home."/BirdNET-Pi/model/labels.txt"));
 $count = $count_labels;
 ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -233,23 +277,73 @@ foreach($formats as $format){
       <h3>BirdNET-Pi Password</h3>
       <p>This password will protect your "Tools" page and "Live Audio" stream.</p>
       <label for="caddy_pwd">Password: </label>
-      <input style="width:40ch" name="caddy_pwd" type="text" value="<?php print($newconfig['CADDY_PWD']);?>" /><br>
+      <input style="width:40ch" name="caddy_pwd" id="caddy_pwd" type="password" value="<?php print($newconfig['CADDY_PWD']);?>" /><span id="showpassword" onmouseover="document.getElementById('caddy_pwd').type='text';" onmouseout="document.getElementById('caddy_pwd').type='password';">show</span><br>
       <h3>Custom URL</h3>
-      <p><a href="mailto:mcguirepr89@gmail.com?subject=Request%20BirdNET-Pi%20Subdomain&body=<?php include('birdnetpi_request.php'); ?>" target="_blank">Email Me</a> if you would like a BirdNETPi.com subdomain. This would be, <i>https://YourLocation.birdnetpi.com</i></p>
       <p>When you update the URL below, the web server will reload, so be sure to wait at least 30 seconds and then go to your new URL.</p>
       <label for="birdnetpi_url">BirdNET-Pi URL: </label>
       <input style="width:40ch;" name="birdnetpi_url" type="url" value="<?php print($newconfig['BIRDNETPI_URL']);?>" /><br>
       <p>The BirdNET-Pi URL is how the main page will be reached. If you want your installation to respond to an IP address, place that here, but be sure to indicate "<i>http://</i>".<br>Example for IP: <i>http://192.168.0.109</i><br>Example if you own your own domain: <i>https://virginia.birdnetpi.com</i></p>
+      <label for="silence_update_indicator">Silence Update Indicator: </label>
+      <input type="checkbox" name="silence_update_indicator" <?php if($newconfig['SILENCE_UPDATE_INDICATOR'] == 1) { echo "checked"; };?> ><br>
+
       <h3>BirdNET-Lite Settings</h3>
-      <label for="overlap">Overlap: </label>
-      <input name="overlap" type="number" min="0.0" max="2.9" step="0.1" value="<?php print($newconfig['OVERLAP']);?>" required/><br>
-      <p>Min=0.0, Max=2.9</p>
-      <label for="confidence">Minimum Confidence: </label>
-      <input name="confidence" type="number" min="0.01" max="0.99" step="0.01" value="<?php print($newconfig['CONFIDENCE']);?>" required/><br>
-      <p>Min=0.01, Max=0.99</p>
-      <label for="sensitivity">Sigmoid Sensitivity: </label>
-      <input name="sensitivity" type="number" min="0.5" max="1.5" step="0.01" value="<?php print($newconfig['SENSITIVITY']);?>" required/><br>
-      <p>Min=0.5, Max=1.5</p>
+
+      <p>
+        <label for="overlap">Overlap: </label>
+        <input name="overlap" type="number" min="0.0" max="2.9" step="0.1" value="<?php print($newconfig['OVERLAP']);?>" required/><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;Min=0.0, Max=2.9
+      </p>
+      <p>
+        <label for="confidence">Minimum Confidence: </label>
+        <input name="confidence" type="number" min="0.01" max="0.99" step="0.01" value="<?php print($newconfig['CONFIDENCE']);?>" required/><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;Min=0.01, Max=0.99
+      </p>
+      <p>
+        <label for="sensitivity">Sigmoid Sensitivity: </label>
+        <input name="sensitivity" type="number" min="0.5" max="1.5" step="0.01" value="<?php print($newconfig['SENSITIVITY']);?>" required/><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;Min=0.5, Max=1.5
+      </p>
+
+      <h3>Accessibility Settings</h3>
+
+      <p>Birdsongs Frequency shifting configuration:<br>
+        this can be useful for earing impaired people.<br>
+
+        <p style="margin-left: 40px">
+
+      <label for="freqshift_tool">shifting tool: </label>
+      <select name="freqshift_tool">
+            <option selected="<?php print($newconfig['FREQSHIFT_TOOL']);?>"><?php print($newconfig['FREQSHIFT_TOOL']);?></option>
+      <?php
+        $formats = array("sox","ffmpeg");
+
+        $formats = array_diff($formats, array($newconfig['FREQSHIFT_TOOL']));
+      foreach($formats as $format){
+        echo "<option value='$format'>$format</option>";
+      }
+      ?>
+      </select>
+
+        Choose here the shifting tool.<br>
+        </p>
+
+        <p style="margin-left: 40px">
+        using ffmpeg:
+        e.g. origin=6000, target=4000, performs a shift of 2000 Hz down.<br>
+        <label for="freqshift_hi">origin [Hz]: </label>
+        <input name="freqshift_hi" type="number" min="0" max="20000" step="1" value="<?php print($newconfig['FREQSHIFT_HI']);?>" required/><br>
+        <label for="freqshift_lo">target [Hz]: </label>
+        <input name="freqshift_lo" type="number" min="0" max="20000" step="1" value="<?php print($newconfig['FREQSHIFT_LO']);?>" required/>
+        </p>
+
+        <p style="margin-left: 40px">
+        using sox:
+        e.g. shiftPitch=-1200 performs a shift of 1 octave down. This value is in 100ths of a semitone.<br>
+        <label for="freqshift_pitch">pitch shift: </label>
+        <input name="freqshift_pitch" type="number" min="-4000" max="4000" step="1" value="<?php print($newconfig['FREQSHIFT_PITCH']);?>" required/><br>
+        </p>
+
+      </p>
       <br><br>
       <input type="hidden" name="view" value="Advanced">
       <button onclick="if(<?php print($newconfig['PRIVACY_THRESHOLD']);?> != document.getElementById('privacy_threshold').value){return confirm('This will take about 90 seconds.')}" type="submit" name="submit" value="advanced">

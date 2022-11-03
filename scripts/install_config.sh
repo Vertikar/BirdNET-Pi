@@ -75,7 +75,9 @@ APPRISE_NOTIFICATION_TITLE="New BirdNET-Pi Detection"
 APPRISE_NOTIFICATION_BODY="A \$sciname \$comname was just detected with a confidence of \$confidence"
 APPRISE_NOTIFY_EACH_DETECTION=0
 APPRISE_NOTIFY_NEW_SPECIES=0
-APPRISE_WEEKLY_REPORT=0
+APPRISE_WEEKLY_REPORT=1
+APPRISE_NOTIFY_NEW_SPECIES_EACH_DAY=0
+APPRISE_MINIMUM_SECONDS_BETWEEN_NOTIFICATIONS_PER_SPECIES=0
 
 #----------------------  Flickr Images API Configuration -----------------------#
 ## If FLICKR_API_KEY is set, the web interface will try and display bird images 
@@ -126,6 +128,22 @@ CONFIDENCE=0.7
 
 SENSITIVITY=1.25
 
+## Configuration of the frequency shifting feature, useful for earing impaired people.
+
+## FREQSHIFT_TOOL
+
+FREQSHIFT_TOOL=sox
+
+## If the tool is ffmpeg, you have to define a freq. shift from HI to LO:
+## FREQSHIFT_HI
+FREQSHIFT_HI=6000
+## FREQSHIFT_LO
+FREQSHIFT_LO=3000
+
+## If the tool is sox, you have to define the pitch shift (amount of 100ths of semintone)
+## FREQSHIFT_PITCH
+FREQSHIFT_PITCH=-1500
+
 ## CHANNELS holds the variable that corresponds to the number of channels the
 ## sound card supports.
 
@@ -170,6 +188,18 @@ AUDIOFMT=mp3
 
 ## DATABASE_LANG is the language used for the bird species database
 DATABASE_LANG=en
+
+## HEARTBEAT_URL is a location to ping every time some analysis is done
+## no information is sent to the the URL, its a heart beat to show that the
+## analysis is continuing
+
+HEARTBEAT_URL=
+
+## SILENCE_UPDATE_INDICATOR is for quieting the display of how many commits
+## your installation is behind by, relative to the Github repo. This number
+## appears next to "Tools" when you're 50 or more commits behind.
+
+SILENCE_UPDATE_INDICATOR=0
 
 ## These are just for debugging
 LAST_RUN=

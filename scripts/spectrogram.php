@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ERROR);
+ini_set('display_errors',1);
 if(isset($_GET['ajax_csv'])) {
 
 if (file_exists('./scripts/thisrun.txt')) {
@@ -28,7 +30,7 @@ if (($handle = fopen($RECS_DIR."/".date('F-Y')."/".date('d-l')."/".$newest_file.
           $num = count($data);
           for ($c=0; $c < $num; $c++) {
               $exp = explode(';',$data[$c]);
-              echo $exp[0].",".$exp[3].",".$exp[4]."\n";
+              echo (($exp[0]+$exp[1])/2).",".$exp[3].",".$exp[4]."\n";
           }
         }
         $row++;
@@ -66,7 +68,7 @@ window.onload = function(){
   };
 
   // if user agent includes iPhone or Mac use legacy mode
-  if(window.navigator.userAgent.includes("iPhone") || window.navigator.userAgent.includes("Mac") || legacy == true) {
+  if(((window.navigator.userAgent.includes("iPhone") || window.navigator.userAgent.includes("Mac")) && !window.navigator.userAgent.includes("Chrome")) || legacy == true) {
     document.getElementById("spectrogramimage").style.display="";
     document.body.querySelector('canvas').remove();
     document.getElementById('player').remove();
@@ -160,7 +162,7 @@ function loadDetectionIfNewExists() {
           // stagger Y placement if a new bird
           if(split[i].split(",")[1] != lastbird || split[i].split(",")[1].length > 13) {
             add+= 15;
-            if(add >= 120) {
+            if(add >= 60) {
              add = 0;
             }
 
@@ -168,6 +170,7 @@ function loadDetectionIfNewExists() {
              // add = 0;
             //}
           }
+          console.log(add)
 
           // Date csv file was created + relative detection time of bird + mic delay
           secago = Math.abs(timeDiff) - split[i].split(",")[0] - 6.8;
@@ -175,11 +178,12 @@ function loadDetectionIfNewExists() {
           x = document.body.querySelector('canvas').width - ((parseInt(secago))*avgfps);
           // if the text is too close to the right side of the canvas and will be cut off, wait 3 seconds before adding text
           if(x > document.body.querySelector('canvas').width - (3*avgfps)) {
-        setTimeout(function (split,i,x) {
+        setTimeout(function (split,i,x,add) {
+          console.log("ADD:"+add)
           console.log(split[i])
           console.log("originally at "+x+", now waiting 2 sec and at "+(x-(3*avgfps)))
         applyText(split[i].split(",")[1],(x - (3*avgfps)), ((document.body.querySelector('canvas').height * 0.50) + add ), split[i].split(",")[2]);
-      }, 2000, split, i, x)
+      }, 2000, split, i, x, add)
       } else {
         applyText(split[i].split(",")[1],x, ((document.body.querySelector('canvas').height * 0.50) + add ), split[i].split(",")[2])
       }
